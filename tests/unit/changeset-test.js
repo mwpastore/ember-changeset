@@ -544,6 +544,49 @@ module('Unit | Utility | changeset', function(hooks) {
     assert.deepEqual(changes, expectedChanges, 'should add change');
   });
 
+  test('#set super deep set does not lose sibling keys', async function(assert) {
+    const resource = {
+      styles: {
+        colors: {
+          main: {
+            sync: true,
+            color: "#3D3D3D",
+            contrastColor: "#FFFFFF",
+            syncedColor: "#575757",
+            syncedContrastColor: "#FFFFFF",
+          },
+          accent: {
+            sync: true,
+            color: "#967E6E",
+            contrastColor: "#ffffff",
+            syncedColor: "#967E6E",
+            syncedContrastColor: "#ffffff",
+          },
+          ambient: {
+            sync: true,
+            color: "#FFFFFF",
+            contrastColor: "#3D3D3D",
+            syncedColor: "#FFFFFF",
+            syncedContrastColor: "#575757",
+          },
+        },
+      },
+    };
+
+    let c = Changeset(resource);
+    c.set('styles.colors.main.sync', false);
+
+    const expectedObj = {
+      sync: false,
+      color: "#3D3D3D",
+      contrastColor: "#FFFFFF",
+      syncedColor: "#575757",
+      syncedContrastColor: "#FFFFFF",
+    }
+    assert.deepEqual(c.styles.colors.main, expectedObj, 'should have object without .get');
+    assert.deepEqual(c.get('styles.colors.main'), expectedObj, 'should have object with .get');
+  });
+
   test('#set adds a change for a Date', async function(assert) {
     const d = new Date();
     let expectedChanges = [{ key: 'dateOfBirth', value: d }];

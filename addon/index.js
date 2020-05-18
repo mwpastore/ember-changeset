@@ -140,7 +140,7 @@ export class EmberChangeset extends BufferedChangeset {
       if (remaining.length > 0) {
         let c = changes[baseKey];
         result = this.getDeep(normalizeObject(c), remaining.join('.'));
-        if (typeof result !== 'undefined') {
+        if (typeof result !== 'undefined' && !isObject(result)) {
           return result;
         }
       } else {
@@ -159,13 +159,14 @@ export class EmberChangeset extends BufferedChangeset {
         // requested key is the top most nested property and we have changes in of the properties, we need to
         // merge the original model data with the changes to have the complete object.
         // eg. model = { user: { name: 'not changed', email: 'changed@prop.com'} }
+        const contentAtLeaf = this.getDeep(content, key);
         if (
           !Array.isArray(result) &&
-          isObject(content[baseKey]) &&
-          !isBelongsToRelationship(content[baseKey]) &&
+          isObject(contentAtLeaf) &&
+          !isBelongsToRelationship(contentAtLeaf) &&
           !isLeafInChanges(key, changes)
         ) {
-          let netKeys = Object.keys(content[baseKey]);
+          let netKeys = Object.keys(contentAtLeaf);
           if (netKeys.length === 0) {
             return result;
           }
@@ -174,15 +175,17 @@ export class EmberChangeset extends BufferedChangeset {
           // structures should happen through `c.set(...)` or `{{changeset-set ...}}`
           const data = Object.assign(Object.create(Object.getPrototypeOf(content[baseKey])), result);
           netKeys.forEach(k => {
-            const inResult = this.safeGet(result, k);
-            const contentData = this.getDeep(content, `${baseKey}.${k}`);
+            const inResult = result[k];
+            const keyParts = key.split('.');
+            keyParts.push(k);
+            const contentData = this.getDeep(content, keyParts.join('.'));
 
             if (
-              isObject(inResult) &&
-              isObject(contentData)
+              isObject(contentData) &&
+              isObject(inResult)
             ) {
               data[k] = { ...contentData, ...inResult };
-            } else if (!inResult) {
+            } else if (typeof inResult === 'undefined') {
               data[k] = contentData;
             }
           });
